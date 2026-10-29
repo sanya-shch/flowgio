@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 5173;
+const PREVIEW_PORT = 4173;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -23,14 +24,30 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
+      testIgnore: /csp\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "csp-production",
+      testMatch: /csp\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"], baseURL: `http://localhost:${PREVIEW_PORT}` },
     },
   ],
 
-  webServer: {
-    command: "npm run dev -- --port 5173 --strictPort",
-    url: `http://localhost:${PORT}`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
-  },
+  webServer: [
+    {
+      command: "npm run dev -- --port 5173 --strictPort",
+      url: `http://localhost:${PORT}`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+    {
+      /* Production build served as-is; GITHUB_REPOSITORY is cleared so the base stays "/". */
+      command: `npm run build && npm run preview -- --port ${PREVIEW_PORT} --strictPort`,
+      url: `http://localhost:${PREVIEW_PORT}`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      env: { GITHUB_REPOSITORY: "" },
+    },
+  ],
 });

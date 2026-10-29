@@ -9,25 +9,25 @@ what's already here."
 Requires Node.js 20+ (see `engines` in `package.json`; `.nvmrc` pins the
 exact version CI uses).
 
-​`bash
+```bash
 git clone https://github.com/sanya-shch/DevCanvas.git
 cd DevCanvas
 npm install
 npm run dev
-​`
+```
 
 ## Before opening a PR
 
 Run the same checks CI runs, in this order — failing fast locally saves a
 round trip through Actions:
 
-​`bash
+```bash
 npm run lint
 npm run format:check
 npm run typecheck
 npm run test:coverage
 npm run test:e2e   # npx playwright install --with-deps chromium, first time only
-​`
+```
 
 `npm run lint:fix` and `npm run format` will fix most style issues
 automatically.

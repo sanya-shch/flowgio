@@ -1,4 +1,4 @@
-import * as monaco from "monaco-editor";
+import { monaco } from "@/components/editor/monaco";
 
 import type { Theme } from "@/stores/theme";
 

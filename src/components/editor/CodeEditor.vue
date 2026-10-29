@@ -3,7 +3,7 @@ import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import { storeToRefs } from "pinia";
 
-import * as monaco from "monaco-editor";
+import { monaco } from "./monaco";
 
 import { DEV_CANVAS_LANGUAGE, registerDevCanvasLanguage } from "./devcanvasLanguage";
 

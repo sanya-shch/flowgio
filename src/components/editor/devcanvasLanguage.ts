@@ -1,4 +1,4 @@
-import * as monaco from "monaco-editor";
+import { monaco } from "./monaco";
 
 export const DEV_CANVAS_LANGUAGE = "devcanvas";
 

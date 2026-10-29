@@ -31,7 +31,9 @@ exportable, and shareable via a URL.
 - [Pinia](https://pinia.vuejs.org/) for state
 - [Vue Router](https://router.vuejs.org/)
 - [Monaco Editor](https://microsoft.github.io/monaco-editor/) for the DSL
-  editor, with a custom language definition
+  editor, with a custom language definition. Only the core editor and the
+  features DevCanvas uses are bundled (see `src/components/editor/monaco.ts`),
+  not the ~80 built-in languages and TypeScript/JSON/CSS/HTML services
 - IndexedDB for local storage (diagrams + crash-recovery drafts)
 - [Vitest](https://vitest.dev/) + [@vue/test-utils](https://test-utils.vuejs.org/)
   for unit/integration tests
@@ -130,6 +132,35 @@ Supported query parameters:
 Panning and zooming still work in embed mode; dragging, selecting, and
 editing nodes are disabled.
 
+If the source or share link is invalid (or exceeds the limits below), the
+embed shows a short error message instead of a blank frame. If the app is
+deployed under a sub-path (e.g. GitHub Pages at `/<repo>/`), include it in the
+`src` (`https://user.github.io/<repo>/embed?...`); the "Edit on DevCanvas"
+badge follows the deployment base automatically.
+
+## Security
+
+DevCanvas has no backend and makes no network requests; diagrams live in the
+browser, and share links keep the diagram in the URL `#hash`, which is never
+sent to a server. The security-relevant surface is untrusted input (DSL source,
+share links, `.devcanvas` files, `?source=`), so every entry point goes through
+one validator and shared limits (`src/features/diagram/limits.ts`):
+
+| Limit                      | Value           |
+| -------------------------- | --------------- |
+| DSL source                 | 300,000 chars   |
+| Nodes / edges              | 3,000 / 6,000   |
+| Label / identifier length  | 500 / 128 chars |
+| Share payload (`#share=`)  | 2,000,000 chars |
+| Imported `.devcanvas` file | 5 MB            |
+
+Labels are rendered as text (never `v-html`) and escaped in SVG export; a
+Content-Security-Policy (no inline/`eval` scripts, same-origin workers) is
+delivered via `<meta>` and checked by an end-to-end test against the production
+build. Dependencies are watched by Dependabot, CodeQL runs in CI, and
+`npm audit` runs on every build. See [SECURITY.md](./SECURITY.md) for the threat
+model, known limitations and how to report a vulnerability privately.
+
 ## Available scripts
 
 | Script                            | What it does                                        |
@@ -192,6 +223,11 @@ nodes=  400  edges=  459  full-reroute=   32.77ms  ⚠️  below 60fps
 nodes=  800  edges=  918  full-reroute=  127.23ms  ⚠️  below 60fps
 nodes= 1500  edges= 1724  full-reroute=  446.44ms  ⚠️  below 60fps
 ```
+
+Note that this benchmark measures edge routing only. It does not include
+Vue's reactivity cost or the browser's SVG layout/paint for thousands of
+elements, so real-world frame times at the upper sizes are worse than the
+numbers above.
 
 In practice: dragging stays smooth up to roughly 200 nodes. Beyond
 that, node dragging gets visibly laggy because every edge reroutes around

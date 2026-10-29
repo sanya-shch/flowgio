@@ -8,6 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@monaco": fileURLToPath(new URL("./node_modules/monaco-editor/esm/vs", import.meta.url)),
     },
   },
 
