@@ -8,21 +8,22 @@ import type {
 } from "./types";
 import { DEFAULT_NODE_SHAPE, normalizeNodeShape } from "./nodeShape";
 import { createNodeLayout } from "./layout";
+import { DIAGRAM_LIMITS } from "./limits";
 
 function generateNodeId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return `node_${crypto.randomUUID().slice(0, 8)}`;
+    return `node_${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
   }
 
-  return `node_${Math.random().toString(16).slice(2, 10)}`;
+  return `node_${Math.random().toString(16).slice(2, 10)}${Math.random().toString(16).slice(2, 10)}`;
 }
 
 function generateEdgeId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return `edge_${crypto.randomUUID().slice(0, 8)}`;
+    return `edge_${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
   }
 
-  return `edge_${Math.random().toString(16).slice(2, 10)}`;
+  return `edge_${Math.random().toString(16).slice(2, 10)}${Math.random().toString(16).slice(2, 10)}`;
 }
 
 interface ParsedNode {
@@ -329,7 +330,42 @@ function createEdgeKey(from: string, to: string, label?: string): string {
   return JSON.stringify([from, to, label === undefined ? null : label]);
 }
 
+function hasOversizedLabel(parsedEdge: ParsedEdge, context: ParserContext, line: number): boolean {
+  const labels = [parsedEdge.from.label, parsedEdge.to.label, parsedEdge.label];
+
+  const oversized = labels.some(
+    (label) => label !== undefined && label.length > DIAGRAM_LIMITS.maxLabelLength,
+  );
+
+  if (oversized) {
+    context.errors.push(
+      createParseError(line, `Labels are limited to ${DIAGRAM_LIMITS.maxLabelLength} characters.`),
+    );
+
+    return true;
+  }
+
+  const idTooLong = [parsedEdge.from.sourceId, parsedEdge.to.sourceId].some(
+    (sourceId) => sourceId.length > DIAGRAM_LIMITS.maxIdLength,
+  );
+
+  if (idTooLong) {
+    context.errors.push(
+      createParseError(
+        line,
+        `Identifiers are limited to ${DIAGRAM_LIMITS.maxIdLength} characters.`,
+      ),
+    );
+  }
+
+  return idTooLong;
+}
+
 function addParsedEdge(parsedEdge: ParsedEdge, context: ParserContext, line: number): void {
+  if (hasOversizedLabel(parsedEdge, context, line)) {
+    return;
+  }
+
   const from = getOrCreateNode(parsedEdge.from, context, line);
 
   const to = getOrCreateNode(parsedEdge.to, context, line);
@@ -382,6 +418,20 @@ function parseDirection(
 export function parseDiagram(source: string, previousDocument?: DiagramDocument): ParseResult {
   const errors: ParseError[] = [];
 
+  if (source.length > DIAGRAM_LIMITS.maxSourceLength) {
+    errors.push(
+      createParseError(
+        1,
+        `Diagram source is too large (limit: ${DIAGRAM_LIMITS.maxSourceLength} characters).`,
+      ),
+    );
+
+    return {
+      document: previousDocument ?? createEmptyDocument(),
+      errors,
+    };
+  }
+
   const lines = source.split(/\r?\n/);
 
   let headerFound = false;
@@ -399,6 +449,12 @@ export function parseDiagram(source: string, previousDocument?: DiagramDocument)
 
   for (let index = 0; index < lines.length; index += 1) {
     const lineNumber = index + 1;
+
+    if (errors.length >= DIAGRAM_LIMITS.maxParseErrors) {
+      errors.push(createParseError(lineNumber, "Too many errors, parsing stopped."));
+
+      break;
+    }
 
     const rawLine = lines[index];
     const line = rawLine.trim();
@@ -434,6 +490,20 @@ export function parseDiagram(source: string, previousDocument?: DiagramDocument)
     }
 
     addParsedEdge(parsedEdge, context, lineNumber);
+
+    if (
+      context.nodes.size > DIAGRAM_LIMITS.maxNodes ||
+      context.edges.length > DIAGRAM_LIMITS.maxEdges
+    ) {
+      errors.push(
+        createParseError(
+          lineNumber,
+          `Diagram is too large (limit: ${DIAGRAM_LIMITS.maxNodes} nodes, ${DIAGRAM_LIMITS.maxEdges} edges).`,
+        ),
+      );
+
+      break;
+    }
   }
 
   if (!headerFound) {

@@ -1,6 +1,6 @@
 import { nextTick, onMounted, watch } from "vue";
 
-import { getSharedDocument } from "@/features/share/shareUrl";
+import { readSharedDocument } from "@/features/share/shareUrl";
 
 import { fitCanvasToScreen } from "./fitCanvasToScreen";
 
@@ -35,7 +35,13 @@ export function useDiagramLifecycle(
   );
 
   onMounted(async () => {
-    const sharedDocument = getSharedDocument();
+    const shared = readSharedDocument();
+
+    if (shared.status === "error") {
+      window.alert(`This share link could not be opened: ${shared.message}`);
+    }
+
+    const sharedDocument = shared.status === "ok" ? shared.document : null;
 
     const id = route.query.id;
     const source = route.query.source;

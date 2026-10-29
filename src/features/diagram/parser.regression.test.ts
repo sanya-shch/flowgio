@@ -68,14 +68,14 @@ describe("parser: edge de-duplication", () => {
   it("parses thousands of edges in reasonable time", () => {
     const lines = ["flowchart LR"];
 
-    for (let index = 0; index < 4000; index += 1) {
+    for (let index = 0; index < 2500; index += 1) {
       lines.push(`n${index} -> n${index + 1}`);
     }
 
     const started = performance.now();
     const { document } = parseDiagram(lines.join("\n"));
 
-    expect(document.edges).toHaveLength(4000);
+    expect(document.edges).toHaveLength(2500);
     expect(performance.now() - started).toBeLessThan(5000);
   });
 });

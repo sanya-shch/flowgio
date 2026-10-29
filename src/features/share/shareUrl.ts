@@ -33,3 +33,25 @@ export function getSharedDocument(): DiagramDocument | null {
 
   return decodeSharePayload(payload);
 }
+
+export type SharedDocumentResult =
+  | { status: "none" }
+  | { status: "ok"; document: DiagramDocument }
+  | { status: "error"; message: string };
+
+/*
+ * Never throws: a broken or hostile link must degrade into a readable error,
+ * not an unhandled rejection that leaves the page blank.
+ */
+export function readSharedDocument(): SharedDocumentResult {
+  try {
+    const document = getSharedDocument();
+
+    return document ? { status: "ok", document } : { status: "none" };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "The share link could not be opened",
+    };
+  }
+}

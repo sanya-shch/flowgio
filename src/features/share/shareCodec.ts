@@ -1,5 +1,6 @@
+import { DIAGRAM_LIMITS } from "@/features/diagram/limits";
 import type { DiagramDocument } from "@/features/diagram/types";
-import { isDiagramDocument } from "./shareValidator";
+import { validateDiagramDocument } from "./shareValidator";
 
 const SHARE_VERSION = 1;
 
@@ -42,11 +43,23 @@ export function encodeSharePayload(document: DiagramDocument): string {
 }
 
 export function decodeSharePayload(value: string): DiagramDocument {
-  const json = decodeBase64Url(value);
+  if (value.length > DIAGRAM_LIMITS.maxSharePayloadLength) {
+    throw new Error("Share link is too large");
+  }
 
-  const payload: unknown = JSON.parse(json);
+  if (!/^[A-Za-z0-9_-]*$/.test(value)) {
+    throw new Error("Share link is malformed");
+  }
 
-  if (!payload || typeof payload !== "object") {
+  let payload: unknown;
+
+  try {
+    payload = JSON.parse(decodeBase64Url(value));
+  } catch {
+    throw new Error("Share link is corrupted");
+  }
+
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     throw new Error("Invalid share payload");
   }
 
@@ -56,9 +69,11 @@ export function decodeSharePayload(value: string): DiagramDocument {
     throw new Error(`Unsupported share version: ${String(record.v)}`);
   }
 
-  if (!isDiagramDocument(record.document)) {
-    throw new Error("Invalid diagram document");
+  const result = validateDiagramDocument(record.document);
+
+  if (!result.ok) {
+    throw new Error(`Invalid diagram document: ${result.reason}`);
   }
 
-  return record.document;
+  return result.value;
 }

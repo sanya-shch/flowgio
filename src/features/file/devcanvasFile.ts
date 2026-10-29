@@ -1,6 +1,7 @@
 import { toRaw } from "vue";
+import { DIAGRAM_LIMITS } from "@/features/diagram/limits";
 import type { DiagramDocument } from "@/features/diagram/types";
-import { isDiagramDocument } from "@/features/share/shareValidator";
+import { validateDiagramDocument } from "@/features/share/shareValidator";
 
 export const DEVCANVAS_FORMAT = "devcanvas";
 
@@ -41,6 +42,10 @@ export function serializeDevCanvasFile(file: DevCanvasFile): string {
 }
 
 export function parseDevCanvasFile(content: string): ImportedDevCanvasFile {
+  if (content.length > DIAGRAM_LIMITS.maxFileBytes) {
+    throw new Error("Invalid .devcanvas file: file is too large");
+  }
+
   let value: unknown;
 
   try {
@@ -63,21 +68,23 @@ export function parseDevCanvasFile(content: string): ImportedDevCanvasFile {
     throw new Error(`Unsupported .devcanvas version: ${String(file.version)}`);
   }
 
-  if (typeof file.title !== "string") {
+  if (typeof file.title !== "string" || file.title.length > DIAGRAM_LIMITS.maxTitleLength) {
     throw new Error("Invalid .devcanvas title");
   }
 
-  if (typeof file.source !== "string") {
+  if (typeof file.source !== "string" || file.source.length > DIAGRAM_LIMITS.maxSourceLength) {
     throw new Error("Invalid .devcanvas source");
   }
 
-  if (!isDiagramDocument(file.document)) {
-    throw new Error("Invalid .devcanvas document");
+  const result = validateDiagramDocument(file.document);
+
+  if (!result.ok) {
+    throw new Error(`Invalid .devcanvas document: ${result.reason}`);
   }
 
   return {
     title: file.title,
     source: file.source,
-    document: structuredClone(file.document),
+    document: structuredClone(result.value),
   };
 }

@@ -79,3 +79,33 @@ describe("EmbedPage", () => {
     expect(localStorage.getItem("devcanvas-theme")).toBeNull();
   });
 });
+
+describe("EmbedPage error handling", () => {
+  it("shows a readable error instead of a blank page for a broken share link", async () => {
+    window.location.hash = "#share=%%%";
+
+    try {
+      const { wrapper, store } = await mountEmbed("");
+
+      expect(store.document.nodes).toHaveLength(0);
+      expect(wrapper.find("[role='alert']").exists()).toBe(true);
+    } finally {
+      window.location.hash = "";
+    }
+  });
+
+  it("surfaces parse errors from ?source=", async () => {
+    const { wrapper } = await mountEmbed(`?source=${encodeURIComponent("not a diagram")}`);
+
+    expect(wrapper.find("[role='alert']").exists()).toBe(true);
+  });
+
+  it("builds the editor link from the deployment base", async () => {
+    const { wrapper } = await mountEmbed(`?source=${encodeURIComponent("flowchart LR\nA -> B")}`);
+
+    expect(wrapper.find("a.embed-badge").attributes("href")).toBe(
+      `${import.meta.env.BASE_URL}editor`,
+    );
+    expect(wrapper.find("[role='alert']").exists()).toBe(false);
+  });
+});

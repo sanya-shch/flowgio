@@ -10,6 +10,7 @@ import {
   serializeDevCanvasFile,
 } from "@/features/file/devcanvasFile";
 import { downloadDevCanvasFile } from "@/features/file/devcanvasFileDownload";
+import { readDevCanvasFile } from "@/features/file/devcanvasFileImport";
 
 import type { useEditorStore } from "@/stores/editor";
 import type { useThemeStore } from "@/stores/theme";
@@ -70,7 +71,7 @@ export function useDiagramExport(
     }
 
     try {
-      const content = await file.text();
+      const content = await readDevCanvasFile(file);
       const imported = parseDevCanvasFile(content);
 
       if (!deps.confirmDiscardChanges()) {
