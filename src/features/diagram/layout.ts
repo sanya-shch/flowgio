@@ -8,8 +8,19 @@ const VERTICAL_GAP = 100;
 const START_X = 100;
 const START_Y = 100;
 
+/*
+ * Assigns every node a level equal to the longest path from a root.
+ *
+ * Both phases are iterative on purpose: diagrams can come from untrusted
+ * share links / files, and a recursive DFS overflows the call stack on a
+ * chain of a few thousand nodes.
+ *
+ * 1. Iterative DFS classifies back edges (edges to a node that is still on the
+ *    DFS stack). They close cycles and are ignored for levelling.
+ * 2. The remaining graph is a DAG, so Kahn's algorithm gives exact longest-path
+ *    levels in O(N + E).
+ */
 export function calculateLevels(nodes: DiagramNode[], edges: DiagramEdge[]): Map<string, number> {
-  const levels = new Map<string, number>();
   const outgoing = new Map<string, string[]>();
 
   for (const node of nodes) {
@@ -17,50 +28,86 @@ export function calculateLevels(nodes: DiagramNode[], edges: DiagramEdge[]): Map
   }
 
   for (const edge of edges) {
-    const targets = outgoing.get(edge.from);
+    if (outgoing.has(edge.to)) {
+      outgoing.get(edge.from)?.push(edge.to);
+    }
+  }
 
-    if (!targets) {
+  const ON_STACK = 1;
+  const DONE = 2;
+
+  const state = new Map<string, number>();
+  const acyclicOutgoing = new Map<string, string[]>();
+  const indegree = new Map<string, number>();
+
+  for (const node of nodes) {
+    acyclicOutgoing.set(node.id, []);
+    indegree.set(node.id, 0);
+  }
+
+  for (const root of nodes) {
+    if (state.has(root.id)) {
       continue;
     }
 
-    targets.push(edge.to);
-  }
+    state.set(root.id, ON_STACK);
 
-  const visiting = new Set<string>();
-  const visited = new Set<string>();
+    const stack: Array<{ id: string; next: number }> = [{ id: root.id, next: 0 }];
 
-  function visit(nodeId: string, level: number) {
-    const currentLevel = levels.get(nodeId);
+    while (stack.length > 0) {
+      const frame = stack[stack.length - 1]!;
+      const targets = outgoing.get(frame.id) ?? [];
 
-    if (currentLevel === undefined || level > currentLevel) {
-      levels.set(nodeId, level);
-    }
-
-    if (visiting.has(nodeId)) {
-      return;
-    }
-
-    if (visited.has(nodeId)) {
-      return;
-    }
-
-    visiting.add(nodeId);
-
-    for (const targetId of outgoing.get(nodeId) ?? []) {
-      if (visiting.has(targetId)) {
+      if (frame.next >= targets.length) {
+        state.set(frame.id, DONE);
+        stack.pop();
         continue;
       }
 
-      visit(targetId, level + 1);
-    }
+      const targetId = targets[frame.next]!;
 
-    visiting.delete(nodeId);
-    visited.add(nodeId);
+      frame.next += 1;
+
+      if (state.get(targetId) === ON_STACK) {
+        continue;
+      }
+
+      acyclicOutgoing.get(frame.id)?.push(targetId);
+      indegree.set(targetId, (indegree.get(targetId) ?? 0) + 1);
+
+      if (!state.has(targetId)) {
+        state.set(targetId, ON_STACK);
+        stack.push({ id: targetId, next: 0 });
+      }
+    }
   }
 
+  const levels = new Map<string, number>();
+  const queue: string[] = [];
+
   for (const node of nodes) {
-    if (!visited.has(node.id)) {
-      visit(node.id, 0);
+    if (indegree.get(node.id) === 0) {
+      levels.set(node.id, 0);
+      queue.push(node.id);
+    }
+  }
+
+  for (let head = 0; head < queue.length; head += 1) {
+    const nodeId = queue[head]!;
+    const nextLevel = (levels.get(nodeId) ?? 0) + 1;
+
+    for (const targetId of acyclicOutgoing.get(nodeId) ?? []) {
+      if (nextLevel > (levels.get(targetId) ?? 0)) {
+        levels.set(targetId, nextLevel);
+      }
+
+      const remaining = (indegree.get(targetId) ?? 0) - 1;
+
+      indegree.set(targetId, remaining);
+
+      if (remaining === 0) {
+        queue.push(targetId);
+      }
     }
   }
 
@@ -152,7 +199,13 @@ export function createNodeLayout(
 
   const layout: DiagramLayout = {};
 
-  const maxLevel = Math.max(...nodesByLevel.keys(), 0);
+  let maxLevel = 0;
+
+  for (const level of nodesByLevel.keys()) {
+    if (level > maxLevel) {
+      maxLevel = level;
+    }
+  }
 
   let primaryOffset = direction === "LR" ? START_X : START_Y;
 
@@ -181,7 +234,7 @@ export function createNodeLayout(
         continue;
       }
 
-      const previous = previousLayout[node.id];
+      const previous = Object.hasOwn(previousLayout, node.id) ? previousLayout[node.id] : undefined;
 
       if (preservePositions && previous) {
         layout[node.id] = {

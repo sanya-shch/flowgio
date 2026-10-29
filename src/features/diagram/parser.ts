@@ -41,6 +41,8 @@ interface ParserContext {
   nodes: Map<string, DiagramNode>;
   edges: DiagramEdge[];
   sourceMap: Record<string, string>;
+  edgeKeys: Set<string>;
+  previousNodesById: Map<string, DiagramNode>;
   errors: ParseError[];
   previousDocument?: DiagramDocument;
 }
@@ -52,14 +54,21 @@ function createParseError(line: number, message: string): ParseError {
   };
 }
 
+const ESCAPE_SEQUENCES: Record<string, string> = {
+  n: "\n",
+  r: "\r",
+  t: "\t",
+  '"': '"',
+  "'": "'",
+  "\\": "\\",
+};
+
+/*
+ * Single pass: a chained .replace() would re-interpret the output of a previous
+ * step (e.g. an escaped backslash followed by "n" must stay backslash + "n").
+ */
 function unescapeQuotedValue(value: string): string {
-  return value
-    .replace(/\\n/g, "\n")
-    .replace(/\\r/g, "\r")
-    .replace(/\\t/g, "\t")
-    .replace(/\\"/g, '"')
-    .replace(/\\'/g, "'")
-    .replace(/\\\\/g, "\\");
+  return value.replace(/\\([nrt"'\\])/g, (_match, char: string) => ESCAPE_SEQUENCES[char] ?? char);
 }
 
 function findClosingQuote(value: string, start: number): number {
@@ -258,10 +267,18 @@ function parseEdgeStatement(
 }
 
 function getOrCreateNodeId(sourceId: string, previousDocument?: DiagramDocument): string {
-  const existingId = previousDocument?.sourceMap[sourceId];
+  /*
+   * sourceId is user input: never read it through the prototype chain, otherwise
+   * names like "constructor" or "toString" resolve to built-in functions.
+   */
+  const previousSourceMap = previousDocument?.sourceMap;
 
-  if (existingId) {
-    return existingId;
+  if (previousSourceMap && Object.hasOwn(previousSourceMap, sourceId)) {
+    const existingId = previousSourceMap[sourceId];
+
+    if (typeof existingId === "string" && existingId) {
+      return existingId;
+    }
   }
 
   return generateNodeId();
@@ -293,7 +310,7 @@ function getOrCreateNode(
 
   const id = getOrCreateNodeId(parsedNode.sourceId, context.previousDocument);
 
-  const previousNode = context.previousDocument?.nodes.find((node) => node.id === id);
+  const previousNode = context.previousNodesById.get(id);
 
   const node: DiagramNode = {
     id,
@@ -308,13 +325,8 @@ function getOrCreateNode(
   return node;
 }
 
-function edgeAlreadyExists(
-  edges: DiagramEdge[],
-  from: string,
-  to: string,
-  label?: string,
-): boolean {
-  return edges.some((edge) => edge.from === from && edge.to === to && edge.label === label);
+function createEdgeKey(from: string, to: string, label?: string): string {
+  return JSON.stringify([from, to, label === undefined ? null : label]);
 }
 
 function addParsedEdge(parsedEdge: ParsedEdge, context: ParserContext, line: number): void {
@@ -322,9 +334,13 @@ function addParsedEdge(parsedEdge: ParsedEdge, context: ParserContext, line: num
 
   const to = getOrCreateNode(parsedEdge.to, context, line);
 
-  if (edgeAlreadyExists(context.edges, from.id, to.id, parsedEdge.label)) {
+  const edgeKey = createEdgeKey(from.id, to.id, parsedEdge.label);
+
+  if (context.edgeKeys.has(edgeKey)) {
     return;
   }
+
+  context.edgeKeys.add(edgeKey);
 
   context.edges.push({
     id: generateEdgeId(),
@@ -374,7 +390,9 @@ export function parseDiagram(source: string, previousDocument?: DiagramDocument)
     direction: "LR",
     nodes: new Map(),
     edges: [],
-    sourceMap: {},
+    sourceMap: Object.create(null) as Record<string, string>,
+    edgeKeys: new Set(),
+    previousNodesById: new Map((previousDocument?.nodes ?? []).map((node) => [node.id, node])),
     errors,
     previousDocument,
   };
