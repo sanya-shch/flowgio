@@ -35,8 +35,8 @@ const {
   isShareCopied,
   handleExportSvg,
   handleExportPng,
-  handleExportDevCanvas,
-  handleImportDevCanvas,
+  handleExportFlowgio,
+  handleImportFlowgio,
   handleShare,
 } = useDiagramExport(store, themeStore, { confirmDiscardChanges });
 
@@ -85,7 +85,7 @@ async function handleSave() {
         <RouterLink to="/" class="brand">
           <span class="brand-mark" aria-hidden="true"> ◆ </span>
 
-          <span class="brand-name"> DevCanvas </span>
+          <span class="brand-name"> Flowgio </span>
         </RouterLink>
 
         <div class="diagram-title">
@@ -189,12 +189,12 @@ async function handleSave() {
           type="button"
           class="header-button"
           :disabled="store.hasErrors || !store.document.nodes.length"
-          @click="handleExportDevCanvas"
+          @click="handleExportFlowgio"
         >
           Export
         </button>
 
-        <button type="button" class="header-button" @click="handleImportDevCanvas">Import</button>
+        <button type="button" class="header-button" @click="handleImportFlowgio">Import</button>
 
         <button type="button" class="header-button" @click="handleCreateNewDiagram">New</button>
 

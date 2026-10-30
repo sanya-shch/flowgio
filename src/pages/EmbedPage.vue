@@ -14,7 +14,7 @@ const route = useRoute();
 const loadError = ref<string | null>(null);
 
 /*
- * The badge must respect the deployment base (e.g. "/DevCanvas/" on GitHub
+ * The badge must respect the deployment base (e.g. "/Flowgio/" on GitHub
  * Pages); a hard-coded "/editor" would leave the app.
  */
 const editorUrl = `${import.meta.env.BASE_URL}editor`;
@@ -67,7 +67,7 @@ onMounted(async () => {
     <p v-if="loadError" class="embed-error" role="alert">{{ loadError }}</p>
 
     <a :href="editorUrl" target="_blank" rel="noopener noreferrer" class="embed-badge">
-      Edit on DevCanvas
+      Edit on Flowgio
     </a>
   </div>
 </template>

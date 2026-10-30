@@ -3,7 +3,7 @@ import { ref } from "vue";
 
 export type Theme = "dark" | "light" | "midnight";
 
-const STORAGE_KEY = "devcanvas-theme";
+const STORAGE_KEY = "flowgio-theme";
 const DEFAULT_THEME: Theme = "dark";
 
 function isTheme(value: string | null): value is Theme {

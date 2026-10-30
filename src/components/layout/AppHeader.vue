@@ -10,7 +10,7 @@ import ThemeSwitcher from "@/components/theme/ThemeSwitcher.vue";
       <RouterLink to="/" class="brand">
         <span class="brand-mark"> ◆ </span>
 
-        <span class="brand-name"> DevCanvas </span>
+        <span class="brand-name"> Flowgio </span>
       </RouterLink>
 
       <div class="header-actions">

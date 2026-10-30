@@ -26,7 +26,7 @@ function contentSecurityPolicy(): Plugin {
   ];
 
   return {
-    name: "devcanvas:csp",
+    name: "flowgio:csp",
     transformIndexHtml(html, ctx) {
       const policy = directives(Boolean(ctx.server)).join("; ");
 

@@ -34,11 +34,11 @@ describe("theme store", () => {
 
     store.setTheme("midnight");
 
-    expect(localStorage.getItem("devcanvas-theme")).toBe("midnight");
+    expect(localStorage.getItem("flowgio-theme")).toBe("midnight");
   });
 
   it("restores theme from localStorage", () => {
-    localStorage.setItem("devcanvas-theme", "light");
+    localStorage.setItem("flowgio-theme", "light");
 
     const store = useThemeStore();
 
@@ -47,7 +47,7 @@ describe("theme store", () => {
   });
 
   it("ignores invalid stored theme", () => {
-    localStorage.setItem("devcanvas-theme", "invalid");
+    localStorage.setItem("flowgio-theme", "invalid");
 
     const store = useThemeStore();
 

@@ -1,6 +1,6 @@
 import { INDEXED_DB_UNAVAILABLE_MESSAGE } from "./storageError";
 
-const DB_NAME = "devcanvas";
+const DB_NAME = "flowgio";
 const DB_VERSION = 2;
 
 export const DIAGRAMS_STORE = "diagrams";

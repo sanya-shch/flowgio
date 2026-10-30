@@ -6,7 +6,7 @@ import { tutorials } from "@/features/tutorials/tutorialRegistry";
   <section class="tutorials-page">
     <div class="tutorials-container">
       <header class="tutorials-header">
-        <p class="eyebrow">Learn DevCanvas</p>
+        <p class="eyebrow">Learn Flowgio</p>
 
         <h1>Tutorials</h1>
 

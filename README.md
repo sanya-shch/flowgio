@@ -1,8 +1,8 @@
-# DevCanvas
+# Flowgio
 
-[![CI](https://github.com/sanya-shch/DevCanvas/actions/workflows/ci.yml/badge.svg)](https://github.com/sanya-shch/DevCanvas/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/sanya-shch/DevCanvas/graph/badge.svg)](https://codecov.io/gh/sanya-shch/DevCanvas)
-[![License: MIT](https://img.shields.io/github/license/sanya-shch/DevCanvas)](LICENSE)
+[![CI](https://github.com/sanya-shch/flowgio/actions/workflows/ci.yml/badge.svg)](https://github.com/sanya-shch/flowgio/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/sanya-shch/flowgio/graph/badge.svg)](https://codecov.io/gh/sanya-shch/flowgio)
+[![License: MIT](https://img.shields.io/github/license/sanya-shch/flowgio)](LICENSE)
 
 A diagram-as-code editor: write a small text DSL on one side, see it rendered
 as an interactive flowchart on the other — auto-laid-out, draggable,
@@ -17,7 +17,7 @@ exportable, and shareable via a URL.
   mouse; see [Keyboard shortcuts](#keyboard-shortcuts) below.
 - **Local persistence** — diagrams save to IndexedDB, autosave in the
   background, and recover an unsaved draft if the tab closes mid-edit.
-- **Export** — SVG, PNG, and a round-trippable `.devcanvas` file format.
+- **Export** — SVG, PNG, and a round-trippable `.flowgio` file format.
 - **Share links** — encode a diagram straight into a URL, no server needed.
 - **Embed mode** — drop a read-only diagram into another page via `<iframe>`.
 - **Tutorials** — a few worked examples of the DSL, built into the app.
@@ -32,7 +32,7 @@ exportable, and shareable via a URL.
 - [Vue Router](https://router.vuejs.org/)
 - [Monaco Editor](https://microsoft.github.io/monaco-editor/) for the DSL
   editor, with a custom language definition. Only the core editor and the
-  features DevCanvas uses are bundled (see `src/components/editor/monaco.ts`),
+  features Flowgio uses are bundled (see `src/components/editor/monaco.ts`),
   not the ~80 built-in languages and TypeScript/JSON/CSS/HTML services
 - IndexedDB for local storage (diagrams + crash-recovery drafts)
 - [Vitest](https://vitest.dev/) + [@vue/test-utils](https://test-utils.vuejs.org/)
@@ -44,8 +44,8 @@ exportable, and shareable via a URL.
 Requires Node 20+ (see [`.nvmrc`](./.nvmrc); developed against Node 22).
 
 ```bash
-git clone https://github.com/sanya-shch/devcanvas.git
-cd devcanvas
+git clone https://github.com/sanya-shch/flowgio.git
+cd flowgio
 npm install
 npm run dev
 ```
@@ -117,7 +117,7 @@ The embed itself is read-only, writes nothing to local storage, and never
 touches the host page's cookies or storage — but as a general rule for
 embedding any third-party iframe, scope its permissions with sandbox
 rather than trusting it by default. allow-scripts is required (it's a
-Vue app); allow-popups lets the "Edit on DevCanvas" badge open in a new
+Vue app); allow-popups lets the "Edit on Flowgio" badge open in a new
 tab. Omit allow-same-origin unless you specifically need it — this embed
 doesn't.
 
@@ -135,15 +135,15 @@ editing nodes are disabled.
 If the source or share link is invalid (or exceeds the limits below), the
 embed shows a short error message instead of a blank frame. If the app is
 deployed under a sub-path (e.g. GitHub Pages at `/<repo>/`), include it in the
-`src` (`https://user.github.io/<repo>/embed?...`); the "Edit on DevCanvas"
+`src` (`https://user.github.io/<repo>/embed?...`); the "Edit on Flowgio"
 badge follows the deployment base automatically.
 
 ## Security
 
-DevCanvas has no backend and makes no network requests; diagrams live in the
+Flowgio has no backend and makes no network requests; diagrams live in the
 browser, and share links keep the diagram in the URL `#hash`, which is never
 sent to a server. The security-relevant surface is untrusted input (DSL source,
-share links, `.devcanvas` files, `?source=`), so every entry point goes through
+share links, `.flowgio` files, `?source=`), so every entry point goes through
 one validator and shared limits (`src/features/diagram/limits.ts`):
 
 | Limit                      | Value           |
@@ -152,12 +152,12 @@ one validator and shared limits (`src/features/diagram/limits.ts`):
 | Nodes / edges              | 3,000 / 6,000   |
 | Label / identifier length  | 500 / 128 chars |
 | Share payload (`#share=`)  | 2,000,000 chars |
-| Imported `.devcanvas` file | 5 MB            |
+| Imported `.flowgio` file | 5 MB            |
 
 Labels are rendered as text (never `v-html`) and escaped in SVG export; a
 Content-Security-Policy (no inline/`eval` scripts, same-origin workers) is
 delivered via `<meta>` and checked by an end-to-end test against the production
-build. Dependencies are watched by Dependabot, CodeQL runs in CI, and
+build. CodeQL runs in CI, and
 `npm audit` runs on every build. See [SECURITY.md](./SECURITY.md) for the threat
 model, known limitations and how to report a vulnerability privately.
 
@@ -205,7 +205,7 @@ timing-based and not something to script reliably in browser automation.
 Edge routing has to avoid overlapping nodes. A naive router checks every
 other node as a possible obstacle for every edge, so a full re-route pass
 (what happens on every node-drag frame, since a moved node can change any
-edge's path) is roughly O(nodes × edges). DevCanvas avoids that in three
+edge's path) is roughly O(nodes × edges). Flowgio avoids that in three
 layers:
 
 1. **Spatial index** (`obstacleIndex.ts`): nodes are bucketed into a uniform
@@ -255,7 +255,7 @@ edge on each keystroke.
 Remaining limits: parsing and layout run on the main thread. Re-parsing
 3,000 nodes takes about 35 ms on a development machine (about 10 ms at 1,500),
 and moving it to a Web Worker was measured and rejected: copying the document
-to and from the worker costs about as much as the parse itself. DevCanvas is built for diagrams you would draw by hand (architecture
+to and from the worker costs about as much as the parse itself. Flowgio is built for diagrams you would draw by hand (architecture
 diagrams, flowcharts, dozens to a few hundred nodes); input is capped at
 3,000 nodes (see [Security](#security)).
 
@@ -274,7 +274,7 @@ src/
     diagram/           # parser, serializer, layout, edge routing, history, SVG export
     diagrams/          # saved-diagram persistence (IndexedDB)
     drafts/            # crash-recovery draft persistence
-    file/              # .devcanvas file format (import/export)
+    file/              # .flowgio file format (import/export)
     share/             # URL-hash share codec
     storage/           # generic IndexedDB repository + database setup
     theme/             # Monaco theme definitions

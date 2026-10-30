@@ -19,7 +19,7 @@ describe("openDatabase", () => {
   it("resolves with a database when IndexedDB is available", async () => {
     const database = await openDatabase();
 
-    expect(database.name).toBe("devcanvas");
+    expect(database.name).toBe("flowgio");
 
     database.close();
   });

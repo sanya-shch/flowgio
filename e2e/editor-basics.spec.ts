@@ -13,7 +13,7 @@ test.describe("Editor basics", () => {
   test("shows a parse error and keeps the last valid diagram on the canvas", async ({ page }) => {
     await page.goto("/editor");
 
-    await setMonacoContent(page, "this is not valid devcanvas syntax {{{");
+    await setMonacoContent(page, "this is not valid flowgio syntax {{{");
 
     await expect(page.locator(".error-panel")).toBeVisible({ timeout: 5000 });
 

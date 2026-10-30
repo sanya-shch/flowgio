@@ -6,7 +6,7 @@ body:
     id: problem
     attributes:
       label: What problem does this solve?
-      description: What are you trying to do that DevCanvas doesn't support today?
+      description: What are you trying to do that Flowgio doesn't support today?
     validations:
       required: true
 

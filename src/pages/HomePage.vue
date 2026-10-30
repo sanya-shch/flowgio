@@ -30,7 +30,7 @@ const features = [
         </h1>
 
         <p class="hero-description">
-          DevCanvas is a developer-focused diagram editor that combines code and visual editing in
+          Flowgio is a developer-focused diagram editor that combines code and visual editing in
           one place.
         </p>
 

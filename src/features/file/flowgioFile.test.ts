@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { DiagramDocument } from "@/features/diagram/types";
 
-import { createDevCanvasFile, parseDevCanvasFile, serializeDevCanvasFile } from "./devcanvasFile";
+import { createFlowgioFile, parseFlowgioFile, serializeFlowgioFile } from "./flowgioFile";
 
 function createDocument(): DiagramDocument {
   return {
@@ -53,17 +53,17 @@ function createDocument(): DiagramDocument {
   };
 }
 
-describe(".devcanvas file", () => {
+describe(".flowgio file", () => {
   it("creates a valid file", () => {
     const document = createDocument();
 
-    const file = createDevCanvasFile(
+    const file = createFlowgioFile(
       "Architecture",
       'flowchart LR\nBrowser["Browser"] -> API["API"]',
       document,
     );
 
-    expect(file.format).toBe("devcanvas");
+    expect(file.format).toBe("flowgio");
 
     expect(file.version).toBe(1);
     expect(file.title).toBe("Architecture");
@@ -71,13 +71,13 @@ describe(".devcanvas file", () => {
   });
 
   it("serializes valid JSON", () => {
-    const file = createDevCanvasFile("Architecture", "flowchart LR", createDocument());
+    const file = createFlowgioFile("Architecture", "flowchart LR", createDocument());
 
-    const content = serializeDevCanvasFile(file);
+    const content = serializeFlowgioFile(file);
 
     expect(() => JSON.parse(content)).not.toThrow();
 
-    expect(content).toContain('"format": "devcanvas"');
+    expect(content).toContain('"format": "flowgio"');
 
     expect(content).toContain('"version": 1');
   });
@@ -85,11 +85,11 @@ describe(".devcanvas file", () => {
   it("round-trips a file", () => {
     const document = createDocument();
 
-    const file = createDevCanvasFile("Architecture", "flowchart LR\nA -> B", document);
+    const file = createFlowgioFile("Architecture", "flowchart LR\nA -> B", document);
 
-    const serialized = serializeDevCanvasFile(file);
+    const serialized = serializeFlowgioFile(file);
 
-    const imported = parseDevCanvasFile(serialized);
+    const imported = parseFlowgioFile(serialized);
 
     expect(imported.title).toBe("Architecture");
 
@@ -103,11 +103,11 @@ describe(".devcanvas file", () => {
 
     document.nodes[0].label = "Браузер 🌐";
 
-    const file = createDevCanvasFile("Архітектура", 'flowchart LR\nA["Привіт 🌍"]', document);
+    const file = createFlowgioFile("Архітектура", 'flowchart LR\nA["Привіт 🌍"]', document);
 
-    const serialized = serializeDevCanvasFile(file);
+    const serialized = serializeFlowgioFile(file);
 
-    const imported = parseDevCanvasFile(serialized);
+    const imported = parseFlowgioFile(serialized);
 
     expect(imported.title).toBe("Архітектура");
 
@@ -115,7 +115,7 @@ describe(".devcanvas file", () => {
   });
 
   it("rejects invalid JSON", () => {
-    expect(() => parseDevCanvasFile("{invalid")).toThrow("invalid JSON");
+    expect(() => parseFlowgioFile("{invalid")).toThrow("invalid JSON");
   });
 
   it("rejects an unknown format", () => {
@@ -124,24 +124,24 @@ describe(".devcanvas file", () => {
       version: 1,
     });
 
-    expect(() => parseDevCanvasFile(content)).toThrow("format");
+    expect(() => parseFlowgioFile(content)).toThrow("format");
   });
 
   it("rejects an unsupported version", () => {
     const content = JSON.stringify({
-      format: "devcanvas",
+      format: "flowgio",
       version: 999,
       title: "Test",
       source: "",
       document: createDocument(),
     });
 
-    expect(() => parseDevCanvasFile(content)).toThrow("Unsupported .devcanvas version");
+    expect(() => parseFlowgioFile(content)).toThrow("Unsupported .flowgio version");
   });
 
   it("rejects an invalid document", () => {
     const content = JSON.stringify({
-      format: "devcanvas",
+      format: "flowgio",
       version: 1,
       title: "Test",
       source: "flowchart LR",
@@ -160,6 +160,6 @@ describe(".devcanvas file", () => {
       },
     });
 
-    expect(() => parseDevCanvasFile(content)).toThrow("Invalid .devcanvas document");
+    expect(() => parseFlowgioFile(content)).toThrow("Invalid .flowgio document");
   });
 });

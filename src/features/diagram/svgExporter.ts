@@ -356,7 +356,7 @@ function renderEdge(
         fill="none"
         stroke="${colors.edge}"
         stroke-width="2"
-        marker-end="url(#devcanvas-arrow)"
+        marker-end="url(#flowgio-arrow)"
       />
       ${label}
     </g>
@@ -393,7 +393,7 @@ export function exportDiagramToSvg(document: DiagramDocument, theme: Theme = "da
 >
   <defs>
     <marker
-      id="devcanvas-arrow"
+      id="flowgio-arrow"
       markerWidth="10"
       markerHeight="10"
       refX="8"

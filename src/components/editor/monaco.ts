@@ -2,7 +2,7 @@
  * Slim Monaco setup.
  *
  * `import "monaco-editor"` pulls in every bundled language (~80 grammars) plus
- * the TypeScript / JSON / CSS / HTML language services, none of which DevCanvas
+ * the TypeScript / JSON / CSS / HTML language services, none of which Flowgio
  * uses: it only has its own Monarch grammar. Importing the core API and the
  * editor features we actually rely on keeps the bundle small and avoids
  * shipping code that the CSP / dependency review would otherwise have to cover.

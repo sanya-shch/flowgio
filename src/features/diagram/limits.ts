@@ -1,6 +1,6 @@
 /*
  * Hard limits for everything that enters the app from outside the editor:
- * DSL source, share links, `.devcanvas` files and `?source=` query params.
+ * DSL source, share links, `.flowgio` files and `?source=` query params.
  *
  * Diagrams are rendered synchronously on the main thread, so unbounded input
  * lets a single crafted link or file freeze the tab. The numbers are generous
@@ -24,6 +24,6 @@ export const DIAGRAM_LIMITS = {
   maxNodeSize: 5_000,
   /** Characters of the base64url payload in a `#share=` hash. */
   maxSharePayloadLength: 2_000_000,
-  /** Bytes of an imported `.devcanvas` file. */
+  /** Bytes of an imported `.flowgio` file. */
   maxFileBytes: 5 * 1024 * 1024,
 } as const;

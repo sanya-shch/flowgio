@@ -5,12 +5,12 @@ import { downloadSvg } from "@/features/diagram/svgDownload";
 import { downloadPng } from "@/features/diagram/pngDownload";
 import { createShareUrl } from "@/features/share/shareUrl";
 import {
-  createDevCanvasFile,
-  parseDevCanvasFile,
-  serializeDevCanvasFile,
-} from "@/features/file/devcanvasFile";
-import { downloadDevCanvasFile } from "@/features/file/devcanvasFileDownload";
-import { readDevCanvasFile } from "@/features/file/devcanvasFileImport";
+  createFlowgioFile,
+  parseFlowgioFile,
+  serializeFlowgioFile,
+} from "@/features/file/flowgioFile";
+import { downloadFlowgioFile } from "@/features/file/flowgioFileDownload";
+import { readFlowgioFile } from "@/features/file/flowgioFileImport";
 
 import type { useEditorStore } from "@/stores/editor";
 import type { useThemeStore } from "@/stores/theme";
@@ -32,7 +32,7 @@ function sanitizeFilename(value: string): string {
 
 /**
  * Export/import/share for the current diagram: SVG and PNG raster
- * export, the native .devcanvas file format (round-trippable), and
+ * export, the native .flowgio file format (round-trippable), and
  * copying a share URL to the clipboard.
  */
 export function useDiagramExport(
@@ -40,23 +40,23 @@ export function useDiagramExport(
   themeStore: ReturnType<typeof useThemeStore>,
   deps: DiagramExportDeps,
 ) {
-  function handleExportDevCanvas() {
+  function handleExportFlowgio() {
     if (store.hasErrors || !store.document.nodes.length) {
       return;
     }
 
-    const file = createDevCanvasFile(store.diagramTitle, store.source, store.document);
+    const file = createFlowgioFile(store.diagramTitle, store.source, store.document);
 
-    const content = serializeDevCanvasFile(file);
+    const content = serializeFlowgioFile(file);
 
-    downloadDevCanvasFile(content, `${sanitizeFilename(store.diagramTitle)}.devcanvas`);
+    downloadFlowgioFile(content, `${sanitizeFilename(store.diagramTitle)}.flowgio`);
   }
 
-  async function handleImportDevCanvas() {
+  async function handleImportFlowgio() {
     const input = document.createElement("input");
 
     input.type = "file";
-    input.accept = ".devcanvas,application/json";
+    input.accept = ".flowgio,application/json";
 
     const file = await new Promise<File | null>((resolve) => {
       input.onchange = () => {
@@ -71,8 +71,8 @@ export function useDiagramExport(
     }
 
     try {
-      const content = await readDevCanvasFile(file);
-      const imported = parseDevCanvasFile(content);
+      const content = await readFlowgioFile(file);
+      const imported = parseFlowgioFile(content);
 
       if (!deps.confirmDiscardChanges()) {
         return;
@@ -80,7 +80,7 @@ export function useDiagramExport(
 
       store.loadDocument(imported.document, imported.title, imported.source);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to import .devcanvas file";
+      const message = error instanceof Error ? error.message : "Unable to import .flowgio file";
 
       window.alert(message);
     }
@@ -146,8 +146,8 @@ export function useDiagramExport(
     isShareCopied,
     handleExportSvg,
     handleExportPng,
-    handleExportDevCanvas,
-    handleImportDevCanvas,
+    handleExportFlowgio,
+    handleImportFlowgio,
     handleShare,
   };
 }

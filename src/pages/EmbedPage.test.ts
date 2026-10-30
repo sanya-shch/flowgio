@@ -71,12 +71,12 @@ describe("EmbedPage", () => {
   });
 
   it("applies the theme from ?theme= without persisting it", async () => {
-    localStorage.removeItem("devcanvas-theme");
+    localStorage.removeItem("flowgio-theme");
 
     await mountEmbed("?source=flowchart+LR&theme=light");
 
     expect(document.documentElement.dataset.theme).toBe("light");
-    expect(localStorage.getItem("devcanvas-theme")).toBeNull();
+    expect(localStorage.getItem("flowgio-theme")).toBeNull();
   });
 });
 

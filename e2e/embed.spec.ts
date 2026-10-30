@@ -8,7 +8,7 @@ test.describe("Embed mode", () => {
 
     await expect(page.locator(".diagram-node")).toHaveCount(2);
     await expect(page.locator(".editor-header")).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "Edit on DevCanvas" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Edit on Flowgio" })).toBeVisible();
   });
 
   test("dragging a node has no effect in embed mode", async ({ page }) => {

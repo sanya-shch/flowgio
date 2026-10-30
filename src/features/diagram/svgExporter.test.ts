@@ -90,9 +90,9 @@ describe("exportDiagramToSvg", () => {
 
     expect(svg).toContain('data-edge-id="edge_a_b"');
 
-    expect(svg).toContain('marker-end="url(#devcanvas-arrow)"');
+    expect(svg).toContain('marker-end="url(#flowgio-arrow)"');
 
-    expect(svg).toContain('id="devcanvas-arrow"');
+    expect(svg).toContain('id="flowgio-arrow"');
   });
 
   it("calculates a padded viewBox", () => {

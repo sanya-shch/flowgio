@@ -1,4 +1,4 @@
-export function downloadDevCanvasFile(content: string, filename = "diagram.devcanvas"): void {
+export function downloadFlowgioFile(content: string, filename = "diagram.flowgio"): void {
   const blob = new Blob([content], {
     type: "application/json;charset=utf-8",
   });

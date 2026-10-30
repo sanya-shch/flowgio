@@ -3,23 +3,23 @@ import { describe, expect, it } from "vitest";
 import { DIAGRAM_LIMITS } from "@/features/diagram/limits";
 import { parseDiagram } from "@/features/diagram/parser";
 
-import { createDevCanvasFile, parseDevCanvasFile, serializeDevCanvasFile } from "./devcanvasFile";
-import { readDevCanvasFile } from "./devcanvasFileImport";
+import { createFlowgioFile, parseFlowgioFile, serializeFlowgioFile } from "./flowgioFile";
+import { readFlowgioFile } from "./flowgioFileImport";
 
 function validFileContent(): string {
   const source = "flowchart LR\nA -> B";
   const { document } = parseDiagram(source);
 
-  return serializeDevCanvasFile(createDevCanvasFile("Test", source, document));
+  return serializeFlowgioFile(createFlowgioFile("Test", source, document));
 }
 
-describe("parseDevCanvasFile hardening", () => {
+describe("parseFlowgioFile hardening", () => {
   it("accepts a valid file", () => {
-    expect(parseDevCanvasFile(validFileContent()).title).toBe("Test");
+    expect(parseFlowgioFile(validFileContent()).title).toBe("Test");
   });
 
   it("rejects oversized content", () => {
-    expect(() => parseDevCanvasFile("x".repeat(DIAGRAM_LIMITS.maxFileBytes + 1))).toThrow(
+    expect(() => parseFlowgioFile("x".repeat(DIAGRAM_LIMITS.maxFileBytes + 1))).toThrow(
       /too large/,
     );
   });
@@ -28,13 +28,13 @@ describe("parseDevCanvasFile hardening", () => {
     const file = JSON.parse(validFileContent()) as Record<string, unknown>;
 
     expect(() =>
-      parseDevCanvasFile(
+      parseFlowgioFile(
         JSON.stringify({ ...file, title: "t".repeat(DIAGRAM_LIMITS.maxTitleLength + 1) }),
       ),
     ).toThrow(/title/);
 
     expect(() =>
-      parseDevCanvasFile(
+      parseFlowgioFile(
         JSON.stringify({ ...file, source: "s".repeat(DIAGRAM_LIMITS.maxSourceLength + 1) }),
       ),
     ).toThrow(/source/);
@@ -45,20 +45,20 @@ describe("parseDevCanvasFile hardening", () => {
 
     file.document.layout = {};
 
-    expect(() => parseDevCanvasFile(JSON.stringify(file))).toThrow(/Invalid .devcanvas document:/);
+    expect(() => parseFlowgioFile(JSON.stringify(file))).toThrow(/Invalid .flowgio document:/);
   });
 });
 
-describe("readDevCanvasFile", () => {
+describe("readFlowgioFile", () => {
   it("rejects oversized files before reading them", async () => {
     const file = { size: DIAGRAM_LIMITS.maxFileBytes + 1, text: () => Promise.resolve("") };
 
-    await expect(readDevCanvasFile(file as unknown as File)).rejects.toThrow(/too large/);
+    await expect(readFlowgioFile(file as unknown as File)).rejects.toThrow(/too large/);
   });
 
   it("reads normal files", async () => {
-    const file = new File(["hello"], "a.devcanvas");
+    const file = new File(["hello"], "a.flowgio");
 
-    await expect(readDevCanvasFile(file)).resolves.toBe("hello");
+    await expect(readFlowgioFile(file)).resolves.toBe("hello");
   });
 });

@@ -5,7 +5,7 @@ import { storeToRefs } from "pinia";
 
 import { monaco } from "./monaco";
 
-import { DEV_CANVAS_LANGUAGE, registerDevCanvasLanguage } from "./devcanvasLanguage";
+import { DEV_CANVAS_LANGUAGE, registerFlowgioLanguage } from "./flowgioLanguage";
 
 import { MONACO_THEMES, registerMonacoThemes } from "@/features/theme/monacoThemes";
 
@@ -31,7 +31,7 @@ onMounted(() => {
     return;
   }
 
-  registerDevCanvasLanguage();
+  registerFlowgioLanguage();
   registerMonacoThemes();
 
   editor = monaco.editor.create(rootRef.value, {

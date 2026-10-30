@@ -27,7 +27,7 @@ test.describe("Export", () => {
     expect(download.suggestedFilename()).toMatch(/\.png$/);
   });
 
-  test("exports the diagram as a .devcanvas file", async ({ page }) => {
+  test("exports the diagram as a .flowgio file", async ({ page }) => {
     await page.goto("/editor");
 
     const downloadPromise = page.waitForEvent("download");
@@ -36,7 +36,7 @@ test.describe("Export", () => {
 
     const download = await downloadPromise;
 
-    expect(download.suggestedFilename()).toMatch(/\.devcanvas$/);
+    expect(download.suggestedFilename()).toMatch(/\.flowgio$/);
   });
 
   test("export buttons are disabled when the diagram has a parse error", async ({ page }) => {

@@ -5,7 +5,7 @@ test.describe("404 page", () => {
     await page.goto("/this-route-does-not-exist");
 
     await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
-    await expect(page).toHaveTitle("Page not found · DevCanvas");
+    await expect(page).toHaveTitle("Page not found · Flowgio");
   });
 
   test("Go home navigates to the homepage", async ({ page }) => {
@@ -14,7 +14,7 @@ test.describe("404 page", () => {
     await page.getByRole("link", { name: "Go home" }).click();
 
     await expect(page).toHaveURL(/\/$/);
-    await expect(page).toHaveTitle("DevCanvas");
+    await expect(page).toHaveTitle("Flowgio");
   });
 
   test("Open editor navigates to the editor", async ({ page }) => {

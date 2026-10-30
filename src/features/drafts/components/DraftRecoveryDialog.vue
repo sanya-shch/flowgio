@@ -34,7 +34,7 @@ function formatDate(timestamp: number) {
           <h2 id="draft-recovery-title">Recover unsaved changes?</h2>
 
           <p id="draft-recovery-description">
-            DevCanvas found an unsaved draft of
+            Flowgio found an unsaved draft of
             <strong>{{ draft.title }}</strong
             >.
           </p>

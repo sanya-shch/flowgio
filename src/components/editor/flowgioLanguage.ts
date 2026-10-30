@@ -1,10 +1,10 @@
 import { monaco } from "./monaco";
 
-export const DEV_CANVAS_LANGUAGE = "devcanvas";
+export const DEV_CANVAS_LANGUAGE = "flowgio";
 
 let isRegistered = false;
 
-export function registerDevCanvasLanguage() {
+export function registerFlowgioLanguage() {
   if (isRegistered) {
     return;
   }

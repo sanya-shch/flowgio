@@ -8,7 +8,7 @@ describe("router", () => {
     await router.isReady();
 
     expect(router.currentRoute.value.matched.length).toBeGreaterThan(0);
-    expect(document.title).toBe("Page not found · DevCanvas");
+    expect(document.title).toBe("Page not found · Flowgio");
   });
 
   it("resolves /embed to a dedicated route (no AppShell chrome)", async () => {
@@ -16,20 +16,20 @@ describe("router", () => {
     await router.isReady();
 
     expect(router.currentRoute.value.matched).toHaveLength(1);
-    expect(document.title).toBe("Embed · DevCanvas");
+    expect(document.title).toBe("Embed · Flowgio");
   });
 
   it("sets a route-specific document title", async () => {
     await router.push("/tutorials");
     await router.isReady();
 
-    expect(document.title).toBe("Tutorials · DevCanvas");
+    expect(document.title).toBe("Tutorials · Flowgio");
   });
 
   it("sets a plain app-name title for the home route", async () => {
     await router.push("/");
     await router.isReady();
 
-    expect(document.title).toBe("DevCanvas");
+    expect(document.title).toBe("Flowgio");
   });
 });

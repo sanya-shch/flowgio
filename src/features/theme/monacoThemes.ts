@@ -2,7 +2,7 @@ import { monaco } from "@/components/editor/monaco";
 
 import type { Theme } from "@/stores/theme";
 
-const MONACO_THEME_PREFIX = "devcanvas-";
+const MONACO_THEME_PREFIX = "flowgio-";
 
 export const MONACO_THEMES: Record<Theme, string> = {
   dark: "vs-dark",

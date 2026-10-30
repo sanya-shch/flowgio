@@ -1,6 +1,6 @@
-# Contributing to DevCanvas
+# Contributing to Flowgio
 
-Thanks for taking a look at DevCanvas. This is a solo-maintained project,
+Thanks for taking a look at Flowgio. This is a solo-maintained project,
 so the bar is less "formal process" and more "keep it consistent with
 what's already here."
 
@@ -10,8 +10,8 @@ Requires Node.js 20+ (see `engines` in `package.json`; `.nvmrc` pins the
 exact version CI uses).
 
 ```bash
-git clone https://github.com/sanya-shch/DevCanvas.git
-cd DevCanvas
+git clone https://github.com/sanya-shch/Flowgio.git
+cd Flowgio
 npm install
 npm run dev
 ```
