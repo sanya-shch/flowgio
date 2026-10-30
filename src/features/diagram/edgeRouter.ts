@@ -1,4 +1,7 @@
+import { createObstacleIndex, type ObstacleIndex } from "./obstacleIndex";
 import type { DiagramDirection, DiagramEdge, DiagramLayout } from "./types";
+
+export type { ObstacleIndex };
 
 export interface EdgePoint {
   x: number;
@@ -19,6 +22,23 @@ interface Rect {
 
 const ROUTE_GAP = 32;
 const NODE_GAP = 16;
+
+/*
+ * Spatial index for routeEdge. Build it once per layout and share it between
+ * all edges: it turns the per-edge obstacle lookup from O(nodes) into roughly
+ * O(nodes near the edge).
+ */
+export function createRouteObstacleIndex(layout: DiagramLayout): ObstacleIndex {
+  return createObstacleIndex(layout, NODE_GAP);
+}
+
+/*
+ * Direct and orthogonal candidates stay inside the bounding box of the two
+ * endpoints plus ROUTE_GAP, and obstacles are padded by NODE_GAP, so nodes
+ * further away than this can never block them. Back edges wrap around the
+ * whole diagram and therefore always use every node.
+ */
+const ROUTE_REACH = ROUTE_GAP + NODE_GAP + 1;
 
 function getRect(layout: DiagramLayout, nodeId: string): Rect | null {
   const rect = layout[nodeId];
@@ -127,6 +147,22 @@ function segmentIntersectsRect(start: EdgePoint, end: EdgePoint, rect: Rect): bo
     segmentsIntersect(start, end, bottomRight, bottomLeft) ||
     segmentsIntersect(start, end, bottomLeft, topLeft)
   );
+}
+
+function countBlockedObstacles(points: EdgePoint[], obstacles: Rect[]): number {
+  let blocked = 0;
+
+  for (const obstacle of obstacles) {
+    for (let index = 0; index < points.length - 1; index += 1) {
+      if (segmentIntersectsRect(points[index]!, points[index + 1]!, obstacle)) {
+        blocked += 1;
+
+        break;
+      }
+    }
+  }
+
+  return blocked;
 }
 
 function routeIntersectsNodes(points: EdgePoint[], obstacles: Rect[]): boolean {
@@ -332,7 +368,7 @@ function createBackEdgeLRRoute(from: Rect, to: Rect, obstacles: Rect[]): EdgeRou
   };
 }
 
-function createBackEdgeTDRoute(from: Rect, to: Rect, obstacles: Rect[]): EdgeRoute | null {
+function createBackEdgeTDRoute(from: Rect, to: Rect, obstacles: Rect[]): EdgeRoute {
   const start = getSourcePoint(from, "TD", "back");
 
   const end = getTargetPoint(to, "TD", "back");
@@ -380,7 +416,25 @@ function createBackEdgeTDRoute(from: Rect, to: Rect, obstacles: Rect[]): EdgeRou
     },
   ];
 
-  return candidates.find((candidate) => !routeIntersectsNodes(candidate.points, obstacles)) ?? null;
+  const clearRoute = candidates.find(
+    (candidate) => !routeIntersectsNodes(candidate.points, obstacles),
+  );
+
+  if (clearRoute) {
+    return clearRoute;
+  }
+
+  /*
+   * Both side corridors are blocked (e.g. a node sits in the same row as the
+   * source). Returning null here used to make the edge disappear from the
+   * canvas; instead keep the candidate that crosses the fewest nodes.
+   */
+  return candidates.reduce((best, candidate) =>
+    countBlockedObstacles(candidate.points, obstacles) <
+    countBlockedObstacles(best.points, obstacles)
+      ? candidate
+      : best,
+  );
 }
 
 function createLoopRoute(node: Rect, direction: DiagramDirection): EdgeRoute {
@@ -511,6 +565,7 @@ export function routeEdge(
   layout: DiagramLayout,
   levels: Map<string, number>,
   direction: DiagramDirection,
+  obstacleIndex?: ObstacleIndex,
 ): EdgeRoute | null {
   const from = getRect(layout, edge.from);
 
@@ -524,11 +579,28 @@ export function routeEdge(
     return createLoopRoute(from, direction);
   }
 
-  const obstacles = Object.entries(layout)
-    .filter(([nodeId]) => nodeId !== edge.from && nodeId !== edge.to)
-    .map(([, rect]) => expandRect(rect, NODE_GAP));
-
   const backEdge = isBackEdge(edge, levels);
+
+  let obstacles: Rect[];
+
+  if (!obstacleIndex) {
+    obstacles = Object.entries(layout)
+      .filter(([nodeId]) => nodeId !== edge.from && nodeId !== edge.to)
+      .map(([, rect]) => expandRect(rect, NODE_GAP));
+  } else if (backEdge) {
+    obstacles = obstacleIndex.all(edge.from, edge.to);
+  } else {
+    const left = Math.min(from.x, to.x) - ROUTE_REACH;
+    const top = Math.min(from.y, to.y) - ROUTE_REACH;
+    const right = Math.max(from.x + from.width, to.x + to.width) + ROUTE_REACH;
+    const bottom = Math.max(from.y + from.height, to.y + to.height) + ROUTE_REACH;
+
+    obstacles = obstacleIndex.query(
+      { x: left, y: top, width: right - left, height: bottom - top },
+      edge.from,
+      edge.to,
+    );
+  }
 
   if (backEdge) {
     return direction === "LR"

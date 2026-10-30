@@ -40,15 +40,25 @@ import "@monaco/editor/contrib/unicodeHighlighter/browser/unicodeHighlighter";
 import "@monaco/editor/contrib/wordHighlighter/browser/wordHighlighter";
 import "@monaco/editor/contrib/wordOperations/browser/wordOperations";
 
-import EditorWorker from "@monaco/editor/editor.worker?worker";
-
 /*
  * Only the generic editor worker is needed (no language service workers).
- * Vite emits it as a same-origin file, so the CSP can stay at
- * `worker-src 'self'`.
+ *
+ * `new Worker(new URL(...))` is used instead of a `?worker` import on purpose:
+ * the "@monaco" alias resolves into node_modules, so in dev Vite's dependency
+ * optimizer pre-bundled the `?worker` entry and dropped its default export
+ * ("does not provide an export named 'default'"). The URL form is left alone
+ * by the optimizer in dev and is bundled into a same-origin file in the build,
+ * so the CSP can stay at `worker-src 'self'`.
  */
 self.MonacoEnvironment = {
-  getWorker: () => new EditorWorker(),
+  getWorker: () =>
+    new Worker(
+      new URL(
+        "../../../node_modules/monaco-editor/esm/vs/editor/editor.worker.js",
+        import.meta.url,
+      ),
+      { type: "module" },
+    ),
 };
 
 export { monaco };

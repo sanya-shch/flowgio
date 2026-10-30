@@ -18,12 +18,39 @@ function generateNodeId(): string {
   return `node_${Math.random().toString(16).slice(2, 10)}${Math.random().toString(16).slice(2, 10)}`;
 }
 
-function generateEdgeId(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return `edge_${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}`;
+function hashString(value: string, seed: number): string {
+  let hash = seed >>> 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619) >>> 0;
   }
 
-  return `edge_${Math.random().toString(16).slice(2, 10)}${Math.random().toString(16).slice(2, 10)}`;
+  return hash.toString(16).padStart(8, "0");
+}
+
+/*
+ * Edge ids are derived from the edge itself (endpoints + label) instead of
+ * being random. Re-parsing unchanged text therefore yields the same ids, so
+ * Vue keeps the existing <DiagramEdge> components instead of unmounting and
+ * re-creating every edge on each keystroke, and a random UUID per edge no
+ * longer dominates parse time. Two 32-bit hashes make a collision practically
+ * impossible; if one ever happens the id gets a numeric suffix.
+ */
+function createStableEdgeId(edgeKey: string, usedIds: Set<string>): string {
+  const base = `edge_${hashString(edgeKey, 0x811c9dc5)}${hashString(edgeKey, 0x01000193)}`;
+
+  let id = base;
+  let suffix = 1;
+
+  while (usedIds.has(id)) {
+    id = `${base}_${suffix}`;
+    suffix += 1;
+  }
+
+  usedIds.add(id);
+
+  return id;
 }
 
 interface ParsedNode {
@@ -43,6 +70,7 @@ interface ParserContext {
   edges: DiagramEdge[];
   sourceMap: Record<string, string>;
   edgeKeys: Set<string>;
+  edgeIds: Set<string>;
   previousNodesById: Map<string, DiagramNode>;
   errors: ParseError[];
   previousDocument?: DiagramDocument;
@@ -379,7 +407,7 @@ function addParsedEdge(parsedEdge: ParsedEdge, context: ParserContext, line: num
   context.edgeKeys.add(edgeKey);
 
   context.edges.push({
-    id: generateEdgeId(),
+    id: createStableEdgeId(edgeKey, context.edgeIds),
     from: from.id,
     to: to.id,
     ...(parsedEdge.label !== undefined ? { label: parsedEdge.label } : {}),
@@ -442,6 +470,7 @@ export function parseDiagram(source: string, previousDocument?: DiagramDocument)
     edges: [],
     sourceMap: Object.create(null) as Record<string, string>,
     edgeKeys: new Set(),
+    edgeIds: new Set(),
     previousNodesById: new Map((previousDocument?.nodes ?? []).map((node) => [node.id, node])),
     errors,
     previousDocument,

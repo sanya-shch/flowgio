@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import { routeEdge } from "@/features/diagram/edgeRouter";
+import { routeEdge, type ObstacleIndex } from "@/features/diagram/edgeRouter";
 
 import type { DiagramEdge, DiagramLayout } from "@/features/diagram/types";
 
@@ -10,10 +10,11 @@ const props = defineProps<{
   layout: DiagramLayout;
   levels: Map<string, number>;
   direction: "LR" | "TD";
+  obstacleIndex?: ObstacleIndex;
 }>();
 
 const route = computed(() => {
-  return routeEdge(props.edge, props.layout, props.levels, props.direction);
+  return routeEdge(props.edge, props.layout, props.levels, props.direction, props.obstacleIndex);
 });
 
 const pathData = computed(() => {

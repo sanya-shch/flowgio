@@ -79,3 +79,36 @@ describe("parser: edge de-duplication", () => {
     expect(performance.now() - started).toBeLessThan(5000);
   });
 });
+
+describe("parser: stable edge ids", () => {
+  const source = 'flowchart LR\nA -> B\nB -> C\nA -- "x" -> C\nA -- "y" -> C';
+
+  it("gives the same ids when the same text is parsed again", () => {
+    const first = parseDiagram(source);
+    const second = parseDiagram(source, first.document);
+
+    expect(second.document.edges.map((edge) => edge.id)).toEqual(
+      first.document.edges.map((edge) => edge.id),
+    );
+  });
+
+  it("keeps an unchanged edge's id when other lines change", () => {
+    const first = parseDiagram(source);
+    const second = parseDiagram(`${source}\nC -> D`, first.document);
+
+    expect(second.document.edges.slice(0, 4).map((edge) => edge.id)).toEqual(
+      first.document.edges.map((edge) => edge.id),
+    );
+  });
+
+  it("produces unique, validator-safe ids", () => {
+    const { document } = parseDiagram(source);
+    const ids = document.edges.map((edge) => edge.id);
+
+    expect(new Set(ids).size).toBe(ids.length);
+
+    for (const id of ids) {
+      expect(id).toMatch(/^edge_[0-9a-f]{16}(_\d+)?$/);
+    }
+  });
+});

@@ -160,3 +160,77 @@ describe("History", () => {
     expect(history.canRedo).toBe(false);
   });
 });
+
+describe("History memory budget", () => {
+  const weigh = (value: string) => value.length;
+
+  it("evicts the oldest steps once the weight budget is exceeded", () => {
+    const history = new History<string>(100, { maxWeight: 10, weigh });
+
+    history.push("aaaa");
+    history.push("bbbb");
+    history.push("cccc"); // 12 > 10 -> oldest dropped
+
+    expect(history.undoDepth).toBe(2);
+    expect(history.undo("current")).toBe("cccc");
+    expect(history.undo("cccc")).toBe("bbbb");
+    expect(history.canUndo).toBe(false);
+  });
+
+  it("always keeps the most recent step, even if it alone is over budget", () => {
+    const history = new History<string>(100, { maxWeight: 3, weigh });
+
+    history.push("a-very-large-snapshot");
+
+    expect(history.undoDepth).toBe(1);
+    expect(history.undo("now")).toBe("a-very-large-snapshot");
+  });
+
+  it("counts the redo stack against the budget", () => {
+    const history = new History<string>(100, { maxWeight: 12, weigh });
+
+    history.push("aaaa");
+    history.push("bbbb");
+
+    history.undo("cccc"); // past: aaaa, future: cccc  (8 total)
+    history.undo("bbbb"); // past: -,    future: cccc, bbbb (8 total)
+
+    expect(history.canRedo).toBe(true);
+    expect(history.redo("aaaa")).toBe("bbbb");
+    expect(history.redo("bbbb")).toBe("cccc");
+  });
+
+  it("drops the redo stack on a new push and recomputes the weight", () => {
+    const history = new History<string>(100, { maxWeight: 8, weigh });
+
+    history.push("aaaa");
+    history.undo("bbbb");
+    history.push("cccc");
+
+    expect(history.canRedo).toBe(false);
+
+    history.push("dddd"); // 8, still within budget
+
+    expect(history.undoDepth).toBe(2);
+  });
+
+  it("still honours the entry count limit", () => {
+    const history = new History<string>(3, { maxWeight: 1_000, weigh });
+
+    for (const value of ["a", "b", "c", "d", "e"]) {
+      history.push(value);
+    }
+
+    expect(history.undoDepth).toBe(3);
+  });
+
+  it("keeps behaving as before without options", () => {
+    const history = new History<string>(2);
+
+    history.push("a");
+    history.push("b");
+    history.push("c");
+
+    expect(history.undoDepth).toBe(2);
+  });
+});

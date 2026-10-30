@@ -1,5 +1,6 @@
 import { calculateLevels } from "../src/features/diagram/layout";
-import { routeEdge } from "../src/features/diagram/edgeRouter";
+import { createRouteObstacleIndex, routeEdge } from "../src/features/diagram/edgeRouter";
+import { getVisibleWorldRect, selectVisibleEdges } from "../src/features/diagram/viewportCulling";
 
 import type {
   DiagramDirection,
@@ -58,27 +59,56 @@ function benchmark(nodeCount: number, direction: DiagramDirection = "LR") {
   const { nodes, edges, layout } = buildDiagram(nodeCount, 0.15);
   const levels = calculateLevels(nodes, edges);
 
-  // Warm up (JIT).
-  for (const edge of edges) {
-    routeEdge(edge, layout, levels, direction);
-  }
+  const view = getVisibleWorldRect({ x: 0, y: 0 }, 1, 1920, 1080);
 
-  const runs = 5;
-  const start = performance.now();
-
-  for (let run = 0; run < runs; run += 1) {
+  const fullScan = () => {
     for (const edge of edges) {
       routeEdge(edge, layout, levels, direction);
     }
-  }
+  };
 
-  const totalMs = performance.now() - start;
-  const perFrameMs = totalMs / runs;
+  // What the canvas does per drag frame: rebuild the index, route every edge.
+  const indexed = () => {
+    const index = createRouteObstacleIndex(layout);
+
+    for (const edge of edges) {
+      routeEdge(edge, layout, levels, direction, index);
+    }
+  };
+
+  // Same, but only for edges near a 1920x1080 viewport (viewport culling).
+  const indexedAndCulled = () => {
+    const index = createRouteObstacleIndex(layout);
+
+    for (const edge of selectVisibleEdges(edges, layout, view)) {
+      routeEdge(edge, layout, levels, direction, index);
+    }
+  };
+
+  const measure = (work: () => void) => {
+    work(); // warm up (JIT)
+
+    const runs = 5;
+    const start = performance.now();
+
+    for (let run = 0; run < runs; run += 1) {
+      work();
+    }
+
+    return (performance.now() - start) / runs;
+  };
+
+  const format = (ms: number) => ms.toFixed(2).padStart(8) + "ms";
+
+  const full = measure(fullScan);
+  const withIndex = measure(indexed);
+  const culled = measure(indexedAndCulled);
 
   // eslint-disable-next-line no-console
   console.log(
     `nodes=${nodeCount.toString().padStart(5)}  edges=${edges.length.toString().padStart(5)}  ` +
-      `full-reroute=${perFrameMs.toFixed(2).padStart(8)}ms  ${perFrameMs > 16.67 ? "⚠️  below 60fps" : "ok"}`,
+      `full-scan=${format(full)}  indexed=${format(withIndex)}  indexed+culled=${format(culled)}  ` +
+      `${culled > 16.67 ? "⚠️  below 60fps" : "ok"}`,
   );
 }
 

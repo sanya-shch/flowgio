@@ -202,41 +202,62 @@ timing-based and not something to script reliably in browser automation.
 
 ## Performance
 
-Edge routing avoids overlapping nodes, which means routing a single edge
-costs O(nodes) — it has to check every other node as a potential obstacle.
-That makes a full re-route pass (what happens on every node-drag frame,
-since a moved node can change any edge's obstacle set) roughly O(nodes ×
-edges).
+Edge routing has to avoid overlapping nodes. A naive router checks every
+other node as a possible obstacle for every edge, so a full re-route pass
+(what happens on every node-drag frame, since a moved node can change any
+edge's path) is roughly O(nodes × edges). DevCanvas avoids that in three
+layers:
 
-npm run bench measures this directly against the real routing code with
-synthetic diagrams, rather than asserting a Big-O claim without a number
-behind it:
+1. **Spatial index** (`obstacleIndex.ts`): nodes are bucketed into a uniform
+   grid, and an edge only looks at nodes near the bounding box of its two
+   endpoints. Back edges, which wrap around the whole diagram, still use every
+   node. A test routes every edge of 60 random layouts both ways and requires
+   identical results.
+2. **Viewport culling** (`viewportCulling.ts`): only nodes and edges that touch
+   the visible area (plus a margin) are mounted, so the DOM size and the work
+   per drag frame follow what is on screen rather than the diagram size. The
+   selected or dragged node always stays mounted. Until the canvas has been
+   measured, everything renders.
+3. Cheaper bookkeeping: node label wrapping is cached in a `computed`, and the
+   undo history compares documents field by field instead of serialising both
+   to JSON.
+
+`npm run bench` measures a full re-route pass on synthetic diagrams with the
+real routing code (index rebuild included; the culled column assumes a
+1920×1080 viewport at zoom 1). One run on a development machine:
 
 ```
 npm run bench
 
-nodes=   25  edges=   27  full-reroute=    0.54ms  ok
-nodes=   50  edges=   56  full-reroute=    0.80ms  ok
-nodes=  100  edges=  114  full-reroute=    2.47ms  ok
-nodes=  200  edges=  229  full-reroute=    8.57ms  ok
-nodes=  400  edges=  459  full-reroute=   32.77ms  ⚠️  below 60fps
-nodes=  800  edges=  918  full-reroute=  127.23ms  ⚠️  below 60fps
-nodes= 1500  edges= 1724  full-reroute=  446.44ms  ⚠️  below 60fps
+nodes=   25  edges=   27  full-scan=    2.96ms  indexed=    0.61ms  indexed+culled=    0.71ms  ok
+nodes=   50  edges=   56  full-scan=    1.68ms  indexed=    0.60ms  indexed+culled=    0.47ms  ok
+nodes=  100  edges=  113  full-scan=    5.26ms  indexed=    0.83ms  indexed+culled=    3.37ms  ok
+nodes=  200  edges=  229  full-scan=   19.95ms  indexed=    2.69ms  indexed+culled=    1.84ms  ok
+nodes=  400  edges=  459  full-scan=   61.62ms  indexed=    5.79ms  indexed+culled=    1.94ms  ok
+nodes=  800  edges=  919  full-scan=  247.76ms  indexed=   10.44ms  indexed+culled=    3.96ms  ok
+nodes= 1500  edges= 1724  full-scan= 1131.90ms  indexed=   23.04ms  indexed+culled=    6.09ms  ok
 ```
 
-Note that this benchmark measures edge routing only. It does not include
-Vue's reactivity cost or the browser's SVG layout/paint for thousands of
-elements, so real-world frame times at the upper sizes are worse than the
-numbers above.
+Absolute numbers depend on the machine (compare the columns, not the digits),
+and the benchmark measures **routing only**. It does not include Vue's
+reactivity cost or the browser's SVG layout and paint, which is why culling
+matters beyond the routing numbers: it keeps the number of live SVG elements
+small. Zooming far out on a very large diagram shows many nodes at once and
+brings the cost back, since everything is then genuinely on screen.
 
-In practice: dragging stays smooth up to roughly 200 nodes. Beyond
-that, node dragging gets visibly laggy because every edge reroutes around
-every other node on every pointer-move frame — this is a real, measured
-ceiling, not a theoretical one. DevCanvas is built for the size of diagram
-you'd actually draw by hand (architecture diagrams, flowcharts, a handful
-of dozens of nodes), not for rendering generated graphs with thousands of
-nodes; there's no virtualization or obstacle-set caching, so that's the
-honest range to expect it to stay responsive in today.
+Undo history keeps up to 100 steps, but each step is a full snapshot, so it
+also has a memory budget (about 12 MB of serialised document across undo and
+redo): small diagrams keep all 100 steps, a diagram at the input limits keeps
+roughly ten. Edge ids are derived from the edge's endpoints and label, so
+re-parsing unchanged text keeps the same ids and Vue does not recreate every
+edge on each keystroke.
+
+Remaining limits: parsing and layout run on the main thread. Re-parsing
+3,000 nodes takes about 35 ms on a development machine (about 10 ms at 1,500),
+and moving it to a Web Worker was measured and rejected: copying the document
+to and from the worker costs about as much as the parse itself. DevCanvas is built for diagrams you would draw by hand (architecture
+diagrams, flowcharts, dozens to a few hundred nodes); input is capped at
+3,000 nodes (see [Security](#security)).
 
 ## Project structure
 

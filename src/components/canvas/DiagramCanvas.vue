@@ -1,8 +1,14 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
 import { useEditorStore } from "@/stores/editor";
+import { createRouteObstacleIndex } from "@/features/diagram/edgeRouter";
 import { calculateLevels } from "@/features/diagram/layout";
+import {
+  getVisibleWorldRect,
+  selectVisibleEdges,
+  selectVisibleNodeIds,
+} from "@/features/diagram/viewportCulling";
 import DiagramNode from "./DiagramNode.vue";
 import DiagramEdge from "./DiagramEdge.vue";
 
@@ -47,6 +53,90 @@ function releasePointerCapture(event: PointerEvent) {
 const levels = computed(() => {
   return calculateLevels(store.document.nodes, store.document.edges);
 });
+
+/*
+ * Shared spatial index: each edge asks it for nearby nodes instead of scanning
+ * all of them. Rebuilding is O(nodes) per layout change (e.g. per drag frame).
+ */
+const obstacleIndex = computed(() => createRouteObstacleIndex(store.document.layout));
+
+// -----------------------------------------------------------------------------
+// Viewport culling
+// -----------------------------------------------------------------------------
+
+/*
+ * Only nodes / edges near the visible area are mounted, so DOM size (and the
+ * per-frame work of dragging) depends on what is on screen, not on diagram
+ * size. Until the viewport has been measured everything is rendered.
+ */
+const viewportSize = ref({ width: 0, height: 0 });
+
+let resizeObserver: ResizeObserver | null = null;
+
+function measureViewport() {
+  const element = viewportRef.value;
+
+  if (!element) {
+    return;
+  }
+
+  viewportSize.value = { width: element.clientWidth, height: element.clientHeight };
+}
+
+onMounted(() => {
+  measureViewport();
+
+  if (typeof ResizeObserver !== "undefined" && viewportRef.value) {
+    resizeObserver = new ResizeObserver(measureViewport);
+    resizeObserver.observe(viewportRef.value);
+  }
+});
+
+// Split into primitives so the lists below only recompute when the (snapped)
+// visible area actually changes, not on every pan pixel.
+const visibleWorldRect = computed(() =>
+  getVisibleWorldRect(
+    store.offset,
+    store.zoom,
+    viewportSize.value.width,
+    viewportSize.value.height,
+  ),
+);
+
+const viewLeft = computed(() => visibleWorldRect.value?.left);
+const viewTop = computed(() => visibleWorldRect.value?.top);
+const viewRight = computed(() => visibleWorldRect.value?.right);
+const viewBottom = computed(() => visibleWorldRect.value?.bottom);
+
+const stableView = computed(() =>
+  viewLeft.value === undefined
+    ? null
+    : {
+        left: viewLeft.value,
+        top: viewTop.value!,
+        right: viewRight.value!,
+        bottom: viewBottom.value!,
+      },
+);
+
+const visibleNodeIds = computed(() =>
+  selectVisibleNodeIds(
+    store.document.nodes.map((node) => node.id),
+    store.document.layout,
+    stableView.value,
+    [store.selectedNodeId, draggingNodeId.value],
+  ),
+);
+
+const visibleNodes = computed(() =>
+  stableView.value
+    ? store.document.nodes.filter((node) => visibleNodeIds.value.has(node.id))
+    : store.document.nodes,
+);
+
+const visibleEdges = computed(() =>
+  selectVisibleEdges(store.document.edges, store.document.layout, stableView.value),
+);
 
 // -----------------------------------------------------------------------------
 // Node dragging
@@ -411,6 +501,7 @@ async function fitToScreen() {
  */
 
 onBeforeUnmount(() => {
+  resizeObserver?.disconnect();
   stopNodeDrag();
   stopPan();
 });
@@ -468,16 +559,17 @@ onBeforeUnmount(() => {
 
       <g :transform="transform">
         <DiagramEdge
-          v-for="edge in store.document.edges"
+          v-for="edge in visibleEdges"
           :key="edge.id"
           :edge="edge"
           :layout="store.document.layout"
           :levels="levels"
           :direction="store.document.direction"
+          :obstacle-index="obstacleIndex"
         />
 
         <DiagramNode
-          v-for="node in store.document.nodes"
+          v-for="node in visibleNodes"
           :key="node.id"
           :node="node"
           :layout="store.document.layout[node.id]"

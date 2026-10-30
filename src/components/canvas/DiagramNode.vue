@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 
 import { useEditorStore } from "@/stores/editor";
 
@@ -32,7 +32,7 @@ const draftLabel = ref("");
 
 const inputRef = ref<HTMLInputElement | null>(null);
 
-const labelLines = () => wrapNodeLabel(props.node.label, props.layout.width);
+const labelLines = computed(() => wrapNodeLabel(props.node.label, props.layout.width));
 
 function handlePointerDown(event: PointerEvent) {
   if (isEditing.value) {
@@ -204,12 +204,12 @@ function handleNodeKeyDown(event: KeyboardEvent) {
     <text
       v-if="!isEditing"
       :x="layout.width / 2"
-      :y="layout.height / 2 - (labelLines().length - 1) * 10"
+      :y="layout.height / 2 - (labelLines.length - 1) * 10"
       text-anchor="middle"
       dominant-baseline="middle"
     >
       <tspan
-        v-for="(line, index) in labelLines()"
+        v-for="(line, index) in labelLines"
         :key="index"
         :x="layout.width / 2"
         :dy="index === 0 ? 0 : 20"
