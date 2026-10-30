@@ -24,7 +24,7 @@
     "bench": "vite-node scripts/perf-bench.ts"
   },
   "dependencies": {
-    "monaco-editor": "^0.56.0",
+    "monaco-editor": "^0.57.0",
     "pinia": "^4.0.3",
     "vue": "^3.5.41",
     "vue-router": "^5.3.1"
