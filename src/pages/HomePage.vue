@@ -30,8 +30,8 @@ const features = [
         </h1>
 
         <p class="hero-description">
-          Flowgio is a developer-focused diagram editor that combines code and visual editing in
-          one place.
+          Flowgio is a developer-focused diagram editor that combines code and visual editing in one
+          place.
         </p>
 
         <div class="hero-actions">

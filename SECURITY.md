@@ -25,7 +25,7 @@ browsers never send to a server. The interesting attack surface is therefore
 | ------------------------ | ---------------------- | --------------------------------------------------------------------------------------------- |
 | DSL source               | editor, `?source=`     | Size, node, edge, label and identifier limits; error cap; labels rendered as text, never HTML |
 | Share link (`#share=`)   | editor, `/embed`       | Payload size cap, alphabet check, schema + integrity validation, readable error on failure    |
-| `.flowgio` file        | import                 | Size checked before reading, same validator as share links                                    |
+| `.flowgio` file          | import                 | Size checked before reading, same validator as share links                                    |
 | SVG / PNG export         | download               | All text XML-escaped, numbers validated as finite                                             |
 | Embedded page (`/embed`) | third-party `<iframe>` | Read-only, never writes storage; embedders should use `sandbox` (see README)                  |
 

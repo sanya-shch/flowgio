@@ -8,6 +8,10 @@ A diagram-as-code editor: write a small text DSL on one side, see it rendered
 as an interactive flowchart on the other — auto-laid-out, draggable,
 exportable, and shareable via a URL.
 
+## Screenshots
+
+![editor page](/assets/Editor.png)
+
 ## Features
 
 - **Text-to-diagram DSL** — a small `flowchart` syntax, parsed live as you
@@ -146,13 +150,13 @@ sent to a server. The security-relevant surface is untrusted input (DSL source,
 share links, `.flowgio` files, `?source=`), so every entry point goes through
 one validator and shared limits (`src/features/diagram/limits.ts`):
 
-| Limit                      | Value           |
-| -------------------------- | --------------- |
-| DSL source                 | 300,000 chars   |
-| Nodes / edges              | 3,000 / 6,000   |
-| Label / identifier length  | 500 / 128 chars |
-| Share payload (`#share=`)  | 2,000,000 chars |
-| Imported `.flowgio` file | 5 MB            |
+| Limit                     | Value           |
+| ------------------------- | --------------- |
+| DSL source                | 300,000 chars   |
+| Nodes / edges             | 3,000 / 6,000   |
+| Label / identifier length | 500 / 128 chars |
+| Share payload (`#share=`) | 2,000,000 chars |
+| Imported `.flowgio` file  | 5 MB            |
 
 Labels are rendered as text (never `v-html`) and escaped in SVG export; a
 Content-Security-Policy (no inline/`eval` scripts, same-origin workers) is
